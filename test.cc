@@ -4,14 +4,14 @@ int main () {
 
     using State = MoldState<4>;
     using MonteCarloModel = MonteCarloModel<State>;
-    using Exp3p = Exp3p<MonteCarloModel, TreeBanditThreaded>;
+    using MatrixUCB = MatrixUCB<MonteCarloModel, TreeBanditThreaded>;
     
     prng device(0);
     State state(10);
     MonteCarloModel model(device);
-    Exp3p session;
+    MatrixUCB session;
 
-    MatrixNode<Exp3p> root;
+    MatrixNode<MatrixUCB> root;
 
     session.run(1000, device, state, model, root);
 
