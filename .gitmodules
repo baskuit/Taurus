@@ -1,0 +1,6 @@
+[submodule "surskit"]
+	path = surskit
+	url = https://github.com/baskuit/surskit
+[submodule "wrapsire"]
+	path = wrapsire
+	url = https://github.com/pasyg/wrapsire
