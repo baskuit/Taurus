@@ -25,25 +25,13 @@ int main () {
         miedon_mirror.actions.col_actions[0]
     );
 
-    const int games = 100;
-
-    prng row_device, col_device;
-
-    Heuristic heuristic_model;
-    MonteCarlo monte_carlo_model(col_device);
-
-    double row_score = 0;
-
-    for (int game = 0; game < games; ++game) {
-        auto miedon_mirror_copy = miedon_mirror;
-        Vs<MatrixUCBHeuristic, MatrixUCBMonteCarlo> arena;
-        arena.run(10000, miedon_mirror_copy, heuristic_model, monte_carlo_model);
-        row_score += miedon_mirror_copy.row_payoff;
-    }
-
-    double row_average_score = row_score / games;
-
-    std::cout << "Average score for heuristic_model: " << row_average_score << std::endl;
-
+    std::cout << miedon_mirror.actions.rows << ' ' << miedon_mirror.actions.cols << '\n';
+    miedon_mirror.get_actions();
+    std::cout << miedon_mirror.actions.rows << ' ' << miedon_mirror.actions.cols << '\n';
+    auto miedon_mirror_copy = miedon_mirror;
+    std::cout << miedon_mirror_copy.actions.rows << ' ' << miedon_mirror_copy.actions.cols << '\n';
+    auto actions_copy = miedon_mirror.actions;
+    std::cout << "Actions obj only " << actions_copy.rows << ' ' << actions_copy.cols << std::endl;
+    std::cout << (miedon_mirror.transition.obs == miedon_mirror_copy.transition.obs) << std::endl;
     return 0;
 };
