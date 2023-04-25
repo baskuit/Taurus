@@ -46,7 +46,7 @@ public:
 
             MatrixNode<ColAlgorithm> col_root;
             col_session.run(playouts, col_device, state, col_model, col_root);
-            col_session.get_strategies(&col_root, col_strategy, col_strategy);
+            col_session.get_strategies(&col_root, row_strategy, col_strategy);
             auto col_action = state.actions.col_actions[col_device.sample_pdf(col_strategy, state.actions.cols)];
 
             state.apply_actions(row_action, col_action);
