@@ -4,8 +4,9 @@
 #include "engine-wrapper.hpp"
 
 template <size_t MaxActions, size_t MaxTrace>
-struct BattleSurskit : StateArray<MaxActions, pkmn_choice, std::array<uint8_t, MaxTrace>, bool>
+class BattleSurskit : public StateArray<MaxActions, pkmn_choice, std::array<uint8_t, MaxTrace>, bool>
 {
+public:
    struct Types : StateArray<MaxActions, pkmn_choice, std::array<uint8_t, MaxTrace>, bool>::Types
    {
    };
@@ -15,18 +16,18 @@ struct BattleSurskit : StateArray<MaxActions, pkmn_choice, std::array<uint8_t, M
    std::uint64_t seed = 0;
    pkmn_psrng random = {};
    pkmn_result result = PKMN_RESULT_NONE;
-   std::array<pkmn_choice, 9> options{ 0 };
+   std::array<pkmn_choice, 9> options{0};
 
-   BattleSurskit(const engine::RBY::Side<engine::Gen::RBY>& side1, const engine::RBY::Side<engine::Gen::RBY>& side2)
+   BattleSurskit(const engine::RBY::Side<engine::Gen::RBY> &side1, const engine::RBY::Side<engine::Gen::RBY> &side2)
    {
       auto it_s1 = side1.cbegin();
       auto it_e1 = side1.cend();
       auto it_s2 = side2.cbegin();
-      auto it_b  = std::begin(battle_.bytes);
-      for(; it_s1 != it_e1; ++it_s1, ++it_s2, ++it_b)
+      auto it_b = std::begin(battle_.bytes);
+      for (; it_s1 != it_e1; ++it_s1, ++it_s2, ++it_b)
       {
-            *it_b         = *it_s1;
-            *(it_b + 184) = *it_s2;
+         *it_b = *it_s1;
+         *(it_b + 184) = *it_s2;
       }
       battle_.bytes[368] = 0;
       battle_.bytes[369] = 0;
@@ -36,19 +37,17 @@ struct BattleSurskit : StateArray<MaxActions, pkmn_choice, std::array<uint8_t, M
       battle_.bytes[373] = 0;
       battle_.bytes[374] = 0;
       battle_.bytes[375] = 0;
-      for(int i = 0; i < 8; ++i)
+      for (int i = 0; i < 8; ++i)
       {
-            battle_.bytes[376 + i] = seed >> 8 * i;
+         battle_.bytes[376 + i] = seed >> 8 * i;
       }
-      pkmn_psrng_init(&random, seed);  
+      pkmn_psrng_init(&random, seed);
    }
 
-   BattleSurskit (const BattleSurskit &t)
+   BattleSurskit(const BattleSurskit &t) : battle_(t.battle_), seed(device.uniform_64()), random(t.random), result(t.result)
    {
-      battle_ = t.battle_;
-      seed = device.uniform_64();
-      random = t.random;
-      result = t.result;
+      this->actions = t.actions;
+      this->transition = t.transition;
       engine::RBY::set_seed(battle_, seed);
       pkmn_psrng_init(&random, seed); // TODO Is this necessary?
    }
@@ -67,15 +66,21 @@ struct BattleSurskit : StateArray<MaxActions, pkmn_choice, std::array<uint8_t, M
       this->transition.prob = true;
 
       const pkmn_result_kind r = pkmn_result_type(result);
-      if (r) {
+      if (r)
+      {
          this->is_terminal = true;
-         if (r == PKMN_RESULT_WIN) {
+         if (r == PKMN_RESULT_WIN)
+         {
             this->row_payoff = 1;
             this->col_payoff = 0;
-         } else if (r == PKMN_RESULT_LOSE) {
+         }
+         else if (r == PKMN_RESULT_LOSE)
+         {
             this->row_payoff = 0;
             this->col_payoff = 1;
-         } else {
+         }
+         else
+         {
             this->row_payoff = .5;
             this->col_payoff = .5;
          }
@@ -83,9 +88,10 @@ struct BattleSurskit : StateArray<MaxActions, pkmn_choice, std::array<uint8_t, M
    }
 };
 
-template <size_t MaxTrace> 
-struct BattleSurskitVector : StateVector<pkmn_choice, std::array<uint8_t, MaxTrace>, bool>
+template <size_t MaxTrace>
+class BattleSurskitVector : public StateVector<pkmn_choice, std::array<uint8_t, MaxTrace>, bool>
 {
+public:
    struct Types : StateVector<pkmn_choice, std::array<uint8_t, MaxTrace>, bool>::Types
    {
    };
@@ -95,18 +101,18 @@ struct BattleSurskitVector : StateVector<pkmn_choice, std::array<uint8_t, MaxTra
    std::uint64_t seed = 0;
    pkmn_psrng random = {};
    pkmn_result result = PKMN_RESULT_NONE;
-   std::array<pkmn_choice, 9> options{ 0 };
+   std::array<pkmn_choice, 9> options{0};
 
-   BattleSurskitVector(const engine::RBY::Side<engine::Gen::RBY>& side1, const engine::RBY::Side<engine::Gen::RBY>& side2)
+   BattleSurskitVector(const engine::RBY::Side<engine::Gen::RBY> &side1, const engine::RBY::Side<engine::Gen::RBY> &side2)
    {
       auto it_s1 = side1.cbegin();
       auto it_e1 = side1.cend();
       auto it_s2 = side2.cbegin();
-      auto it_b  = std::begin(battle_.bytes);
-      for(; it_s1 != it_e1; ++it_s1, ++it_s2, ++it_b)
+      auto it_b = std::begin(battle_.bytes);
+      for (; it_s1 != it_e1; ++it_s1, ++it_s2, ++it_b)
       {
-            *it_b         = *it_s1;
-            *(it_b + 184) = *it_s2;
+         *it_b = *it_s1;
+         *(it_b + 184) = *it_s2;
       }
       battle_.bytes[368] = 0;
       battle_.bytes[369] = 0;
@@ -116,21 +122,19 @@ struct BattleSurskitVector : StateVector<pkmn_choice, std::array<uint8_t, MaxTra
       battle_.bytes[373] = 0;
       battle_.bytes[374] = 0;
       battle_.bytes[375] = 0;
-      for(int i = 0; i < 8; ++i)
+      for (int i = 0; i < 8; ++i)
       {
-            battle_.bytes[376 + i] = seed >> 8 * i;
+         battle_.bytes[376 + i] = seed >> 8 * i;
       }
-      pkmn_psrng_init(&random, seed);  
+      pkmn_psrng_init(&random, seed);
    }
 
-   BattleSurskitVector (const BattleSurskitVector &t)
+   BattleSurskitVector(const BattleSurskitVector &t) : battle_(t.battle_), seed(device.uniform_64()), random(t.random), result(t.result)
    {
-      battle_ = t.battle_;
-      seed = device.uniform_64();
-      random = t.random;
-      result = t.result;
+      this->actions = t.actions;
+      this->transition = t.transition;
       engine::RBY::set_seed(battle_, seed);
-      pkmn_psrng_init(&random, seed); // TODO Is this necessary?
+      pkmn_psrng_init(&random, seed);
    }
 
    void get_actions()
@@ -150,15 +154,21 @@ struct BattleSurskitVector : StateVector<pkmn_choice, std::array<uint8_t, MaxTra
       this->transition.prob = true;
 
       const pkmn_result_kind r = pkmn_result_type(result);
-      if (r) {
+      if (r)
+      {
          this->is_terminal = true;
-         if (r == PKMN_RESULT_WIN) {
+         if (r == PKMN_RESULT_WIN)
+         {
             this->row_payoff = 1;
             this->col_payoff = 0;
-         } else if (r == PKMN_RESULT_LOSE) {
+         }
+         else if (r == PKMN_RESULT_LOSE)
+         {
             this->row_payoff = 0;
             this->col_payoff = 1;
-         } else {
+         }
+         else
+         {
             this->row_payoff = .5;
             this->col_payoff = .5;
          }
