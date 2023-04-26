@@ -1,6 +1,7 @@
 #include "surskit.hh"
 #include "battle-surskit.hh"
 #include "battle-heuristic.hh"
+#include "vs.hh"
 
 const size_t MaxActions = 9;
 const size_t MaxTrace = 180;
@@ -26,6 +27,7 @@ int main () {
     );
 
     const int games = 100;
+    const int playouts = 10;
 
     prng row_device, col_device;
 
@@ -37,8 +39,9 @@ int main () {
     for (int game = 0; game < games; ++game) {
         auto miedon_mirror_copy = miedon_mirror;
         Vs<MatrixUCBHeuristic, MatrixUCBMonteCarlo> arena;
-        arena.run(10000, miedon_mirror_copy, heuristic_model, monte_carlo_model);
+        arena.run(playouts, miedon_mirror_copy, heuristic_model, monte_carlo_model);
         row_score += miedon_mirror_copy.row_payoff;
+        std::cout << row_score / (game + 1) << std::endl;
     }
 
     double row_average_score = row_score / games;
