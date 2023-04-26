@@ -54,8 +54,8 @@ public:
 
    void get_actions()
    {
-      this->actions.rows = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P1, pkmn_result_p1(result), this->actions.row_actions.data(), PKMN_OPTIONS_SIZE);
-      this->actions.cols = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P2, pkmn_result_p2(result), this->actions.col_actions.data(), PKMN_OPTIONS_SIZE);
+      this->actions.rows = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P1, pkmn_result_p1(result), this->actions.row_actions.data(), PKMN_CHOICES_SIZE);
+      this->actions.cols = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P2, pkmn_result_p2(result), this->actions.col_actions.data(), PKMN_CHOICES_SIZE);
    }
 
    void apply_actions(
@@ -140,9 +140,9 @@ public:
    void get_actions()
    {
       std::array<pkmn_choice, 9> options;
-      this->actions.rows = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P1, pkmn_result_p1(result), options.data(), PKMN_OPTIONS_SIZE);
+      this->actions.rows = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P1, pkmn_result_p1(result), options.data(), PKMN_CHOICES_SIZE);
       std::copy_n(options.begin(), this->actions.rows, std::back_inserter(this->actions.row_actions));
-      this->actions.cols = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P2, pkmn_result_p2(result), options.data(), PKMN_OPTIONS_SIZE);
+      this->actions.cols = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P2, pkmn_result_p2(result), options.data(), PKMN_CHOICES_SIZE);
       std::copy_n(options.begin(), this->actions.cols, std::back_inserter(this->actions.col_actions));
    }
 
