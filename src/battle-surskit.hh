@@ -49,7 +49,7 @@ public:
       this->actions = t.actions;
       this->transition = t.transition;
       engine::RBY::set_seed(battle_, seed);
-      pkmn_psrng_init(&random, seed); // TODO Is this necessary?
+      // pkmn_psrng_init(&random, seed); // TODO Is this necessary?
    }
 
    void get_actions()
@@ -134,16 +134,16 @@ public:
       this->actions = t.actions;
       this->transition = t.transition;
       engine::RBY::set_seed(battle_, seed);
-      pkmn_psrng_init(&random, seed);
+      // pkmn_psrng_init(&random, seed);
    }
 
    void get_actions()
    {
       std::array<pkmn_choice, 9> options;
       this->actions.rows = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P1, pkmn_result_p1(result), options.data(), PKMN_CHOICES_SIZE);
-      std::copy_n(options.begin(), this->actions.rows, std::back_inserter(this->actions.row_actions));
+      this->actions.row_actions.insert(this->actions.row_actions.begin(), options.begin(), options.begin() + (this->actions.rows));
       this->actions.cols = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P2, pkmn_result_p2(result), options.data(), PKMN_CHOICES_SIZE);
-      std::copy_n(options.begin(), this->actions.cols, std::back_inserter(this->actions.col_actions));
+      this->actions.col_actions.insert(this->actions.col_actions.begin(), options.begin(), options.begin() + (this->actions.cols));
    }
 
    void apply_actions(
