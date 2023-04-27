@@ -27,7 +27,7 @@ int main () {
     );
 
     const int games = 100;
-    const int playouts = 10;
+    const int playouts = 20;
 
     prng row_device, col_device;
 
@@ -35,18 +35,23 @@ int main () {
     MonteCarlo monte_carlo_model(col_device);
 
     double row_score = 0;
+    int total_game_length = 0;
 
     for (int game = 0; game < games; ++game) {
         auto miedon_mirror_copy = miedon_mirror;
-        Vs<MatrixUCBHeuristic, MatrixUCBMonteCarlo> arena;
-        arena.run(playouts, miedon_mirror_copy, heuristic_model, monte_carlo_model);
+        Vs<Exp3pHeuristic, Exp3pMonteCarlo> arena;
+        int game_length = 0;
+        arena.run(playouts, miedon_mirror_copy, heuristic_model, monte_carlo_model, game_length);
+        total_game_length += game_length;
         row_score += miedon_mirror_copy.row_payoff;
         std::cout << row_score / (game + 1) << std::endl;
+        std::cout << "Average score for heuristic_model: " << row_score / (game + 1) << std::endl;
+        std::cout << "Average game length: " << total_game_length / (game + 1) << std::endl;
     }
 
     double row_average_score = row_score / games;
 
-    std::cout << "Average score for heuristic_model: " << row_average_score << std::endl;
+    std::cout << "Playouts per turn: "<< playouts << " Average score for heuristic_model: " << row_average_score << std::endl;
 
     return 0;
 };

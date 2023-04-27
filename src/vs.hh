@@ -29,28 +29,31 @@ public:
         int playouts,
         State &state, 
         RowModel &row_model, 
-        ColModel &col_model    
+        ColModel &col_model,
+        int &game_length    
     ) {
         state.get_actions();
+        game_length = 0;
         while (!state.is_terminal) {
             RealVector row_strategy(state.actions.rows), col_strategy(state.actions.cols);
 
             MatrixNode<RowAlgorithm> row_root;
             row_session.run(playouts, row_device, state, row_model, row_root);
             row_session.get_strategies(&row_root, row_strategy, col_strategy);
-            auto row_action = state.actions.row_actions[row_device.sample_pdf(row_strategy, state.actions.rows)];
+            int row_idx = row_device.sample_pdf(row_strategy, state.actions.rows);
+            auto row_action = state.actions.row_actions[row_idx];
 
-            // Does not work with 2 different searches being run on it?
-
-            // Copy constructor for battle object does not work correctly
 
             MatrixNode<ColAlgorithm> col_root;
             col_session.run(playouts, col_device, state, col_model, col_root);
             col_session.get_strategies(&col_root, row_strategy, col_strategy);
-            auto col_action = state.actions.col_actions[col_device.sample_pdf(col_strategy, state.actions.cols)];
+            int col_idx = col_device.sample_pdf(col_strategy, state.actions.cols);
+            auto col_action = state.actions.col_actions[col_idx];
 
             state.apply_actions(row_action, col_action);
             state.get_actions();
+            // std::cout << row_idx << ' ' << col_idx << std::endl;
+            ++game_length;
         }
     }
 };
