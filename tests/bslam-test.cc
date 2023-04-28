@@ -32,7 +32,7 @@ int main () {
     const int playout_iter = 10;
     Algorithm::Types::VectorReal row_strategy(9), col_strategy(9);
 
-    session.run(1000000, device, state, model, root);
+    session.run(1000, device, state, model, root);
     // always segfaults if comment out below????
     std::cout << "playouts: " << (0 + 1) * sub_playouts << std::endl;
     std::cout << "matrix node count: " << root.count_matrix_nodes() << std::endl;

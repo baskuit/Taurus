@@ -3,6 +3,7 @@
 #include <iostream>
 #include <assert.h>
 #include "test.hh"
+#include "test2.hh"
 
 /*
 
@@ -12,8 +13,8 @@ Passes with size = 7, device seed = 0, n_matrices  = 10000
 However that takes several minutes, so we will reduce the size of the test.
 */
 
-constexpr int min_dim = 9;
-constexpr int size = 9;
+const int min_dim = 9;
+const int size = 9;
 
 using Types = TypeList<
     int,
@@ -39,8 +40,8 @@ void random_matrices(prng &device, int rows, int cols, int n_matrices, Types::Re
         Types::MatrixReal row_payoff_matrix(rows, cols);
         Types::MatrixReal col_payoff_matrix(rows, cols);
 
-        row_payoff_matrix.data = row_ucb_matrix_data;
-        col_payoff_matrix.data = col_ucb_matrix_data;
+        row_payoff_matrix.data = A1;
+        col_payoff_matrix.data = A2;
 
         // for (int row_idx = 0; row_idx < rows; ++row_idx)
         // {
