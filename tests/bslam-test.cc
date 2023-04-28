@@ -11,11 +11,11 @@ int main () {
     using MatrixUCB = MatrixUCB<MonteCarlo, TreeBandit>;
     using Algorithm = MatrixUCB;
 
-    BattleSurskit tauros_mirror(engine::RBY::monotauros, engine::RBY::monotauros);
-    tauros_mirror.get_actions();
-    tauros_mirror.apply_actions(
-        tauros_mirror.actions.row_actions[0],
-        tauros_mirror.actions.col_actions[0]
+    BattleSurskit state(engine::RBY::miedon, engine::RBY::zapjynx);
+    state.get_actions();
+    state.apply_actions(
+        state.actions.row_actions[0],
+        state.actions.col_actions[0]
     );
 
     prng device(1);
@@ -32,7 +32,7 @@ int main () {
     const int playout_iter = 10;
     Algorithm::Types::VectorReal row_strategy(9), col_strategy(9);
 
-    session.run(1000, device, tauros_mirror, model, root);
+    session.run(1000000, device, state, model, root);
     // always segfaults if comment out below????
     std::cout << "playouts: " << (0 + 1) * sub_playouts << std::endl;
     std::cout << "matrix node count: " << root.count_matrix_nodes() << std::endl;
@@ -49,7 +49,7 @@ int main () {
     root.stats.visit_matrix.print();
 
     // for (int i = 1; i < playout_iter; ++i) {
-    //     session.run(sub_playouts, device, tauros_mirror, model, root);
+    //     session.run(sub_playouts, device, state, model, root);
     //     std::cout << "playouts: " << (i + 1) * sub_playouts << std::endl;
     //     std::cout << "matrix node count: " << root.count_matrix_nodes() << std::endl;
     //     std::cout << "strategies: " << std::endl;

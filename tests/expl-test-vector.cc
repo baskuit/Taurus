@@ -49,7 +49,7 @@ void random_matrices(prng &device, int rows, int cols, int n_matrices, Types::Re
             }
         }
 
-        LibGambit::solve_bimatrix<Types>(row_payoff_matrix, col_payoff_matrix, row_strategy, col_strategy);
+        // LibGambit::solve_bimatrix<Types>(row_payoff_matrix, col_payoff_matrix, row_strategy, col_strategy);
 
         const Types::Real expl = Linear::exploitability<Types>(row_payoff_matrix, col_payoff_matrix, row_strategy, col_strategy);
         assert(expl < epsilon);
