@@ -6,12 +6,7 @@ include_directories(
     src
     surskit
     surskit/src
-    # surskit/gambit/src
-    # wrapsire
 )
-
-# add_library(wrapsire INTERFACE)
-# target_include_directories(wrapsire INTERFACE wrapsire/include)
 
 add_subdirectory(surskit/gambit)
 add_subdirectory(wrapsire)
