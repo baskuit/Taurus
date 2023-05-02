@@ -1,3 +1,4 @@
+
 # Perfect Info
 
 Pretty much always, we assume the battle is perfect info. This means anything that is normally only known to one player (besides the move they just selected) is known by both players. Technically, the parens in the last sentence means the game is imperfect info, when considered as a general game. But it's perfect info when considered as a simultaneous move game.
@@ -25,7 +26,7 @@ Considering the above, games frequently settle into a perfect information state.
 
 A strong perfect info search would have lots of applications, particularly in analysis-engines and tactics trainers.
 
-## MCTS
+# MCTS
 
 "Monte carlo" is not necessarily pure. It can use a NN evaluation for value and policy estimation at each newly expanded matrix node. It does not necessarily need a policy estimate nor does it have to be an NN; A traditional value heuristic is fine too. So basically 'mcts' in popular usage refers to the scheme of growing the tree incrementally, one node at a time. There is also typically a bandit algorithm that is being applied at each matrix node that is being visited as we traverse up the explored sub-tree.
 
@@ -56,13 +57,10 @@ Surskit designed to work with any joint-action selection process, so it supports
 
 MatrixUCB is also a direct generalization of UCB (The latter assumes the matrix has the shape (1xn) or (nx1)), so it is easy to implement MatrixPUCB. This is an analogue of PUCT/PUCB like in AlphaZero. It uses the policy estimation of the network in the tree search to prefer network endorsed actions and thus practically reduce the branching factor. We simply weight the exploration term of the joint action (a_i, a_j) by its probability of being played, which is the product of the row and column players individual policies.
 
-## Testing
-
-Surskit is designed to allow easy comparison of these MCTS algorithms and tuning of their search parameters.
 
 ## Multithreading
 
-There is probably a lot of room for improvement in Surskit's multithreading. Currently each thread has two wait twice at the root node to lock the node's statistics during selection and backprop/update. The contention here could probably be reduced somehow or even the threads could be moved up the tree, where there would be multiple 'root nodes' and thus lower contention at each one. Pre probably has more/better ideas.
+There is probably a lot of room for improvement in Surskit's multithreading. Currently each thread has two wait twice at the root node (and every matrix node) to lock the node's statistics during selection and backprop/update. The contention here could probably be reduced somehow or even the threads could be moved up the tree, where there would be multiple 'root nodes' and thus lower contention at each one. Pre probably has more/better ideas regarding this.
 
 # Tree Structure
 
@@ -74,17 +72,216 @@ A stochastic two player SM game could also be thought of as an (m, n, k) matrix,
 
 The current tree structure is Surskit is general enough to work with non MCTS algorithms and even imperfect info search algorithms.
 
-## Pruning Edges at Chance Nodes
+## Edges at Chance Nodes aka Transitions
 
-This is an extremely important task if a search is going to be effective. There are simply way to many possible outcomes if we identify edges by prng calls, almost soley because of damage rolls across gens.
+This is an extremely important consideration if search is going to be effective. There are simply way too many possible outcomes if we identify edges by prng calls, almost soley because of damage rolls across gens. We aren't so much 'pruning' the edges at chance nodes than 'identifying' them together. Either way the desired result is a reduction in the branching factor.
+There are two main categories of identifying chance node edges: lossless and lossy.
+
+### Lossless
+This means that we are not identifying edges that lead to distinct states together. There are several schemes of identification. The ones resulting in less branches require more calculation, not only because of calculation of the probability of that branch.
+
+* Log
+	Here we just the showdown log to differentiate between branches, nothing else. 
+* State
+This is the most extreme identification that is lossless. We simply compare the state at the end for equality of bits. Practically speaking I'm not sure if this is possible without hashing, and the possibility of hash collisions means we no longer have the 'lossless' property guaranteed.
+
+### Lossy
+
+We could simply identify two branches together if the the total damage done by the respective players is close enough. This would reduce the branching factor due to damage rolls immensely, and that reduction could be tuned.
+
+Another approach would be to simply change the **simulator**, so that the full number (but maybe keep range intact) of damage rolls are no longer possible. This is what I did in my original Stunfisk search. There were only 3 rolls: low, med, and high. They had probabilities of 1/4, 1/2, and 1/4 resp.
+
+These two methods cause different kinds of inconsistencies: 
+
+The former means that when a deeper node is visited, the underlying battle that is guiding the tree traversal could be different than the battle that was previously 'visiting' that node. If they are different enough, we could have an 'action space desync' where an action that is recorded at the matrix node as being a legal option is not legal at the current battle. There are many kinds of pathologies that could happen because of this 'drift' between the battles that accompany any matrix node. These pathologies would have to be handled in the tree to prevent the battle from turning into garbage. If you play an invalid action currently you risk the battle never returning a terminal state, so the playout would go on forever and the search would stall.
+
+The latter means that the game being searched is now only an approximation of the actual game of pokemon. However this approximation is also tunable and there is the added benefit that these inconsistencies don't have to be handled within the tree and don't lead to runtime errors. The only risk is that the results of the search don't reflect the reality of the game you intend to search. I speculate that the battle states where this happens in a significant way are rare.
+
+## Probability Calculation
+
+In your doc on `-Dchance`, you've only been considering lossless methods. That's fine, and I will leave all those considerations to your doc :) 
 
 ## Other Applications
 
+It should be simple to do search-free methods like DeepNash using surskit + engine too. Eventually I want to write some general "Trajectory" (RL term) data classes for alpha zero and these could also be used to generate data for DeepNash and other policy gradient methods just fine.
+
 # Performance Optimization
+
+Speed is paramount whether we are doing RL or even just search with a preexisting evaluator. Progress in computer chess has basically been due to optimizations and hardware improvements.
 
 ## Solving Matrix Games
 
+My discussions with Dr. Savani have indicated that full precision arithmetic with Extreme Equilibrium Enumeration of Lemke Howsen should be the fastest way to solve the 'larger' matrices in our use case. This is because the floating point Gambit solver was shitting the bed and doing tens of thousands of pivots for some matrices. This was not a bug with my implementation, but rather a limitation of the software.
+
+My MatrixUCB implementations will memoize the NE strategies at each node and only resolve after checking the exploitability of the old strategies on the newly perturbed matrix is above some threshold. The strategies are initialized to uniform which is in fact at NE on a fresh UCB bi-matrix, since the later will also be uniform.
+Since most nodes in MCTS are leaf nodes and are thus only visited a handful of times, this means that we generally don't have to actually solve matrices any where but the lowest depths of the tree. Still, depending on the exploitability threshold a 'mature' UCB matrix will have to be solved every few visits. Thus fast solving for 9x9 matrices is very important. In fact my MatrixUCB search is orders of magnitude slower than my Exp3p search for that fact alone; all other aspects between these two searches are nearly identical.
+
 ## Unclear
 
-# Itinerary of Future Work
+Besides matrix solving and my multithreading, I'm not sure what needs attention. I think the `ChanceNode::access` function that takes a `Transition` object and either points to the matrix node child that corresponds to it or creates a new one could be improved, probably.
 
+# AlphaBeta
+
+## In the SM context
+
+AlphaBeta is an optimization of the minimax algorithm for alternating move games that allows for the calculation of the root node *value* (It's game theoretic value to be precise) without visiting and estimating/inferencing every single leaf node. I'm not going to explain how the algorithm works; there are much better resources online for doing that.
+
+The minimax algorithm has a direct parallel in the perfect info SM case. The only distinction is that we the value of a node is the NE payoff (for the row player) of the matrix of (row payoff) values for the subsequent child nodes. Again, the game being 2 player and constant sum means that *the NE payoff* is well defined, since the expected payoffs for any NE are the same. Stochasticity does not change much. In that case, joint actions point to a chance node instead of another matrix node, and the payoff of the chance node is the expected payoff of all the matrix nodes that the chance node shares an edge with (weighted by the probability of that edge/transition).
+
+There are two papers that can be easily found re SM alphabeta. The first: [Alpha Beta pruning for Games with Simultaneous Moves](https://ojs.aaai.org/index.php/AAAI/article/view/8148) (Saffadine) was published in 2012 and a later paper: [Using Double-Oracle Method and Serialized Alpha-Beta Search  for Pruning in Simultaneous Move Games](https://www.ijcai.org/Proceedings/13/Papers/018.pdf)
+(Bosansky) claims to be an improvement. In the best case, only 7% of the terminal nodes need to be visited to calculate the root value.
+
+I am going to implement the second paper shortly. Surskit already has a class of randomly generated PI-SM games ("random-trees") ready to go. Although the discussion in Bosansky notes that some games do not permit large savings when using AlphaBeta. The random trees in surskit have the payoffs at terminal edges chosen independently of each other, which means they are in this class of stingy games. I might tweak the generation a bit to reflect the discussion in Section 5 of Bosansky; Those games are much more natural and permit higher savings.
+
+I feel that there may be an even better algorithm to be discovered, based solely on my feelings that there is probably a simpler way to explain the workings of alphabeta than I've seen in the explanations and previous papers. 
+
+## Stockfish
+
+Stockfish and other conventional chess algorithms use AlphaBeta pruning in a depth first search as the cornerstone of their search. They attempt to explore all nodes up to a certain depth `n` from the root node. AlphaBeta pruning means they won't have to explore all of them though. 
+
+I have to admin my understanding of conventional chess engines is lacking, and I have a lot more reading of the chessprogammingwiki to do. I'm just going to post a back and forth I had recently on the LC0 discord.
+
+Me:
+> Does anyone know where I could find a high level explanation of stockfish's search? I know it uses alpha beta which sets some depth limit and calculates the minimax value of the root assuming estimates at the leaf nodes of the subtree. But surely then it increases the depth over time. How is this done?
+
+Guy:
+> in a nutshell, `while(!stop) { search(depth++); }`. results are stored in a hash table with replacement policy favoring higher depth
+
+Me:
+> this doesnt address how the subsequent search() calls exploit the ones before, which they must otherwise why wouldn't you just call search with a higher depth to begin with. And I'm assuming search() is just depth first with alpha beta pruning, right?
+
+Guy:
+> you can call it with a higher depth, but it either finishes the depth or it doesn't, partial results doesn't make any sense. 
+to break early, you call it with increasing depth and results are shared with a hash table
+which makes a higher depth search reuse previous results, as search is basically a recursion of itself with current depth - X
+
+Me:
+> So assume that a move has been ruled out as bad by search with depth `n`. If then a search with higher depth `n'` is called it will still provide estimates for the new leaf nodes at full depth `n'` beyond that move? Even though the lower depth search suggests those nodes don't matter? I understand that you can't rely on that entirely since a move could only appear to be bad at low depth while actually being good. Still it seems you could still permit arbitrary depth search over the entire tree but still not check every subsequent leaf node at the full depth `n'`. Seems like it would more efficiently explore the tree this way. Fair enough though if it doesn't do any of that. Also it's not clear how hashed values at lower depths would be used in a higher depth search. Do you just reuse the same alpha, beta, and "v" values and pretend that they were calculated in the new search?
+
+Guy:
+> for every search(n), it starts with the root position, look at various information available(hash, history stats, etc) to make a ordered list of legal moves, then, starting from the best estimate, make the move, call search(n-1) on the next position, and continue, when the recursion returns, it writes current eval into the hash, and higher depth results overwrites lower ones
+when n <=0, it goes into qsearch, or you can just consider it a static eval of the position
+how many moves to look at is alpha beta, plus more pruning methods like it may search with n-x(x>1) or skip it entirely(pruning)
+so in other words, with every higher depth search, it just repeatedly looking at the same stuff but with new alpha beta bounds and pruning rules, while leaf nodes will also end further
+
+## Move Ordering
+
+The amount of savings in AlphaBeta is very sensitive to the order in which moves are explored. You want to explore the best moves first so that you can rule out worse moves when encountered later. It seems this ordering is some of the information that is memoized between `search(n)` calls from the previous discussion.
+
+## Optimizing the Stochastic Case
+
+There is low hanging fruit in regards to optimizing AlphaBeta even more in the case of stochastic games. Naively adapting the algorithms above mean that we calculate the value for every matrix node that a chance node points to, so then the value of the chance node could be used in the matrix node above it.
+However, can reason that if we've explored most of the chance node (that is some majority of its total probability) we may find that there are no values the remaining matrix nodes could have that would affect our calculation. Thus we can prune that chance node.
+This requires knowing the probability of chance node edges/transitions, obviously. But clearly we need to know those to do AlphaBeta to begin with.
+
+## Viability
+
+All this to say that I think depth-first AlphaBeta is totally worth considering once we have an eval function to power it.
+It seems the algorithm in Bosanky does compute some NE strategies so it could potentially power AlphaZero (as it then provides policy targets too). However it's still probably not suited for A0 since I believe you need to visit many more nodes with AlphaBeta.
+
+# Surskit
+
+Surskit is currently limited to implementing various MCTS but in a way that is modular, so different games ("states"), evaluation methods ("models") and bandit algorithms ("algorithm") can be swapped around without having to write any extra code. This can be seen in some code I wrote to compare the strength of Pasy's nascent heuristic function with pure monte carlo:
+
+    using BattleSurskit = BattleSurskitVector<MaxTrace>;
+
+    using MonteCarlo = MonteCarloModel<BattleSurskit>;
+    using Heuristic = BattleHeuristic<BattleSurskit>;
+
+    using Exp3pMonteCarlo = Exp3p<MonteCarlo, TreeBandit>;
+    using MatrixUCBMonteCarlo = MatrixUCB<MonteCarlo, TreeBandit>;
+
+    using Exp3pHeuristic = Exp3p<Heuristic, TreeBandit>;
+    using MatrixUCBHeuristic = MatrixUCB<Heuristic, TreeBandit>;
+
+First of all the battle wrapper has an templated log length (still called trace) to reduce memory use and speed up comparisons when we know the battle cannot produce a full length log. I also have a wrapper that uses std::arrays instead of std::vectors, so I could make a one line swap to that instead. Or i could change the precision of the real number representations from double to single... Modularity!
+The next two lines define the models on this state, again so that changing the state will not affect this code.
+The last four lines are the search algorithms, and notice the `TreeBandit` parameter. This is a curiously recurring template pattern that will use a single threaded tree search in the above code, but will use multi threaded search if I provide the classes `TreeBanditThreaded` or `TreeBanditThreadPool` instead.
+
+Finally any two of these final 4 algorithm types are template parameters of the following class.
+It's sole method simply forces these two algorithms to play versus eachother from an initial state/battle until it's terminal.
+
+
+	template <class RowAlgorithm, class ColAlgorithm>
+	class Vs
+	{
+	public:
+	    using Real = typename RowAlgorithm::Types::Real;
+	    using RealVector = typename RowAlgorithm::Types::VectorReal;
+	    using RowModel = typename RowAlgorithm::Types::Model;
+	    using ColModel = typename ColAlgorithm::Types::Model;
+	    using State = typename RowAlgorithm::Types::State;
+
+	    prng row_device;
+	    prng col_device;
+
+	    RowAlgorithm row_session;
+	    ColAlgorithm col_session;
+
+	    Vs() {}
+
+	    Vs(int row_seed, int col_seed) : row_device(row_seed), col_device(col_seed)
+	    {
+	    }
+
+	    Vs(RowAlgorithm &row_session, ColAlgorithm &col_session) : row_session(row_session), col_session(col_session) {}
+
+	    void run (
+	        int playouts,
+	        State &state, 
+	        RowModel &row_model, 
+	        ColModel &col_model,
+	        int &game_length    
+	    ) {
+	        state.get_actions();
+	        game_length = 0;
+	        while (!state.is_terminal) {
+	            RealVector row_strategy(state.actions.rows), col_strategy(state.actions.cols);
+
+	            MatrixNode<RowAlgorithm> row_root;
+	            row_session.run(playouts, row_device, state, row_model, row_root);
+	            row_session.get_strategies(&row_root, row_strategy, col_strategy);
+	            int row_idx = row_device.sample_pdf(row_strategy, state.actions.rows);
+	            auto row_action = state.actions.row_actions[row_idx];
+
+
+	            MatrixNode<ColAlgorithm> col_root;
+	            col_session.run(playouts, col_device, state, col_model, col_root);
+	            col_session.get_strategies(&col_root, row_strategy, col_strategy);
+	            int col_idx = col_device.sample_pdf(col_strategy, state.actions.cols);
+	            auto col_action = state.actions.col_actions[col_idx];
+
+	            state.apply_actions(row_action, col_action);
+	            state.get_actions();
+	            // std::cout << row_idx << ' ' << col_idx << std::endl;
+	            ++game_length;
+	        }
+	    }
+	};
+
+The run function really only needs the battle and number of playouts per turn as its parameters. It could simply initialize the model within the function since all the current models can be default initialized. Also note the `prng` type. Any time randomness is used (like in every single bandit algorithm and in the rollout method of the pure monte carlo model) I force a `prng` 'device' to be used. Thus surskit is deterministic which I just think is neat. Although multithreaded search is obviously not deterministic...
+
+# Development Directions
+
+The next step is to create a model/evaluator for battles. There are several approaches being tried simultaneously.
+
+* Heuristic
+	Pasy is working on a fast heuristic that provides a value estimate. Its output can be bounded [0, 1] with a tanh activation function so it is more compatible with my MCTS searches. There, the value represents expected score where victory=1 and loss=0.
+	This effort requires insight into battling to define the features (think piece values and king safety in chess engines). I think he's probably one of the best players to do this since he's a tournament level player and knows C++.
+
+* AlphaZero
+This is the approach I want to take personally because of my experience with the algorithm and RL as a whole. This method can work right now even without the `-Dchance` flag.
+
+* AlphaBeta
+This method is fast because it only visits each node once and uses game theoretic reasoning to compute the root payoff and strategies. However this efficiency means it needs to know the probability of transitions to propagate values down the tree since it does not sample like MCTS does. Again, implementing this is a high priority for me and I don't need your flag to be done to do so.
+
+* Search Hyperparameter Tuning and Comparison
+MatrixUCB and adversarial bandit algorithms each have hyperparameters that are tunable. The authors and AlphaZero and the LeelaChess devs agree that they are very important for strong search and RL. These parameters I think mostly depend on the game/domain and not the model, so there is cause to try to tune them now even without a strong model. I also have MatrixPUCB which is the SM analog to PUCT, the NN compatible bandit algorithm that was used in AlphaZero's MCTS.
+
+## Goals
+
+* **Stonger than human play in the perfect info setting**. This is the biggest goal that is probably easily attainable. I think the setup would be a bit like how heads up no-limit poker agents were shown to be super human. Many games vs the best players. In poker, the players were compensated based on how well they performed. I woudn't mind partially funding a exposition tournament if I believed in my baby.
+* A tactics trainer utility that can scan games for states where there is a line of best play that is difficult to find. This tool would be a boon for the community. Even positions with mixed NE could be candidates as a way to teach players about 50/50s and finetune their sense of when its actually a 75/25, etc
+* Analysis Engines. When a battle leaks enough info that a PI search can be used, this could be used by players after the fact to learn what the best moves were. Or even during the game :eyes:
+* Faster DeepNash. I've implemented DeepNash (and spktrm in your discord has been continuing to work on it since) but I abandoned it because PS just runs too slow on my machine.
+* Teambuilding. A big part of teambuilding is the hidden info aspect but there is still value in building strong teams for the perfect info game. They would clearly still be effective if used in the imperfect info setting too. I have well founded ideas about how to do this but I will leave it off this doc. Its already long enough!
