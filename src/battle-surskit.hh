@@ -1,24 +1,24 @@
 #pragma once
 
-#include "surskit.hh"
+#include <surskit.hh>
 #include "engine-wrapper.hpp"
 
-template <size_t MaxActions, size_t MaxTrace>
-class BattleSurskit : public StateArray<MaxActions, pkmn_choice, std::array<uint8_t, MaxTrace>, bool>
+template <size_t MaxLog>
+class Battle : public State<BattleTypes<MaxLog>>
 {
 public:
-   struct Types : StateArray<MaxActions, pkmn_choice, std::array<uint8_t, MaxTrace>, bool>::Types
+   struct Types : State<BattleTypes<MaxLog>>::Types
    {
    };
 
-   prng device;
+   typename Types::PRNG device;
    pkmn_gen1_battle battle_{};
-   std::uint64_t seed = 0;
+   typename Types::Seed seed = 0;
    pkmn_psrng random = {};
    pkmn_result result = PKMN_RESULT_NONE;
    std::array<pkmn_choice, 9> options{0};
 
-   BattleSurskit(const engine::RBY::Side<engine::Gen::RBY> &side1, const engine::RBY::Side<engine::Gen::RBY> &side2)
+   Battle(const engine::RBY::Side<engine::Gen::RBY> &side1, const engine::RBY::Side<engine::Gen::RBY> &side2)
    {
       auto it_s1 = side1.cbegin();
       auto it_e1 = side1.cend();
@@ -42,135 +42,69 @@ public:
          battle_.bytes[376 + i] = seed >> 8 * i;
       }
       pkmn_psrng_init(&random, seed);
+      this->prob = true;
    }
 
-   BattleSurskit(const BattleSurskit &t) : battle_(t.battle_), seed(device.uniform_64()), random(t.random), result(t.result)
+   Battle(const Battle &t) : battle_(t.battle_), random(t.random), result(t.result) // TODO
    {
-      this->actions = t.actions;
-      this->transition = t.transition;
-      engine::RBY::set_seed(battle_, seed);
-      // pkmn_psrng_init(&random, seed); // TODO Is this necessary?
+      this->row_actions = t.row_actions;
+      this->col_actions = t.col_actions;
+      // this->obs = t.obs; // TODO do we need to copy obs?
    }
 
-   void get_actions()
-   {
-      this->actions.rows = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P1, pkmn_result_p1(result), this->actions.row_actions.data(), PKMN_CHOICES_SIZE);
-      this->actions.cols = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P2, pkmn_result_p2(result), this->actions.col_actions.data(), PKMN_CHOICES_SIZE);
-   }
-
-   void apply_actions(
-       typename Types::Action row_action,
-       typename Types::Action col_action)
-   {
-      result = pkmn_gen1_battle_update(&battle_, row_action, col_action, this->transition.obs.data(), MaxTrace);
-      this->transition.prob = true;
-
-      const pkmn_result_kind r = pkmn_result_type(result);
-      if (r)
-      {
-         this->is_terminal = true;
-         if (r == PKMN_RESULT_WIN)
-         {
-            this->row_payoff = 1;
-            this->col_payoff = 0;
-         }
-         else if (r == PKMN_RESULT_LOSE)
-         {
-            this->row_payoff = 0;
-            this->col_payoff = 1;
-         }
-         else
-         {
-            this->row_payoff = .5;
-            this->col_payoff = .5;
-         }
-      }
-   }
-};
-
-template <size_t MaxTrace>
-class BattleSurskitVector : public StateVector<pkmn_choice, std::array<uint8_t, MaxTrace>, bool>
-{
-public:
-   struct Types : StateVector<pkmn_choice, std::array<uint8_t, MaxTrace>, bool>::Types
-   {
-   };
-
-   prng device;
-   pkmn_gen1_battle battle_{};
-   std::uint64_t seed = 0;
-   pkmn_psrng random = {};
-   pkmn_result result = PKMN_RESULT_NONE;
-   std::array<pkmn_choice, 9> options{0};
-
-   BattleSurskitVector(const engine::RBY::Side<engine::Gen::RBY> &side1, const engine::RBY::Side<engine::Gen::RBY> &side2)
-   {
-      auto it_s1 = side1.cbegin();
-      auto it_e1 = side1.cend();
-      auto it_s2 = side2.cbegin();
-      auto it_b = std::begin(battle_.bytes);
-      for (; it_s1 != it_e1; ++it_s1, ++it_s2, ++it_b)
-      {
-         *it_b = *it_s1;
-         *(it_b + 184) = *it_s2;
-      }
-      battle_.bytes[368] = 0;
-      battle_.bytes[369] = 0;
-      battle_.bytes[370] = 0;
-      battle_.bytes[371] = 0;
-      battle_.bytes[372] = 0;
-      battle_.bytes[373] = 0;
-      battle_.bytes[374] = 0;
-      battle_.bytes[375] = 0;
-      for (int i = 0; i < 8; ++i)
-      {
-         battle_.bytes[376 + i] = seed >> 8 * i;
-      }
-      pkmn_psrng_init(&random, seed);
-   }
-
-   BattleSurskitVector(const BattleSurskitVector &t) : battle_(t.battle_), seed(device.uniform_64()), random(t.random), result(t.result)
-   {
-      this->actions = t.actions;
-      this->transition = t.transition;
+   void reseed (typename Types::Seed seed) {
+      // this->seed = seed; // NOT NEEded TODO prolly
       engine::RBY::set_seed(battle_, seed);
       // pkmn_psrng_init(&random, seed);
    }
 
    void get_actions()
-   {
-      std::array<pkmn_choice, 9> options;
-      this->actions.rows = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P1, pkmn_result_p1(result), options.data(), PKMN_CHOICES_SIZE);
-      this->actions.row_actions.insert(this->actions.row_actions.begin(), options.begin(), options.begin() + (this->actions.rows));
-      this->actions.cols = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P2, pkmn_result_p2(result), options.data(), PKMN_CHOICES_SIZE);
-      this->actions.col_actions.insert(this->actions.col_actions.begin(), options.begin(), options.begin() + (this->actions.cols));
+   { // TODO must be much slower?
+      const size_t rows = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P1, pkmn_result_p1(result), this->row_actions.data(), PKMN_CHOICES_SIZE);
+      const size_t cols = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P2, pkmn_result_p2(result), this->col_actions.data(), PKMN_CHOICES_SIZE);
+      this->row_actions.fill(rows);
+      this->col_actions.fill(cols);
+
+      // std::array<pkmn_choice, 9> options;
+      // this->row_actions.clear();
+      // this->col_actions.clear();
+      // const size_t rows = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P1, pkmn_result_p1(result), options.data(), PKMN_CHOICES_SIZE);
+      // this->row_actions.insert(this->row_actions.begin(), options.begin(), options.begin() + rows);
+      // const size_t cols = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P2, pkmn_result_p2(result), options.data(), PKMN_CHOICES_SIZE);
+      // this->col_actions.insert(this->col_actions.begin(), options.begin(), options.begin() + cols);
    }
 
    void apply_actions(
        typename Types::Action row_action,
        typename Types::Action col_action)
    {
-      result = pkmn_gen1_battle_update(&battle_, row_action, col_action, this->transition.obs.data(), MaxTrace);
-      this->transition.prob = true;
+      result = pkmn_gen1_battle_update(&battle_, row_action, col_action, this->obs.data(), MaxLog);
+      // this->prob = true;
 
       const pkmn_result_kind r = pkmn_result_type(result);
+      // const int x = (r == PKMN_RESULT_WIN);
+      // const int y = (r == PKMN_RESULT_LOSE);
+      // const int z = 1 - x * y;
+      // this->row_payoff = Rational(x + z, 1 + z);
+      // this->col_payoff = Rational(y + z, 1 + z);
+
       if (r)
       {
          this->is_terminal = true;
          if (r == PKMN_RESULT_WIN)
          {
-            this->row_payoff = 1;
-            this->col_payoff = 0;
+            this->payoff.row_value = Rational(1);
+            this->payoff.col_value = Rational(0);
          }
          else if (r == PKMN_RESULT_LOSE)
          {
-            this->row_payoff = 0;
-            this->col_payoff = 1;
+            this->payoff.row_value = Rational(0);
+            this->payoff.col_value = Rational(1);
          }
          else
          {
-            this->row_payoff = .5;
-            this->col_payoff = .5;
+            this->payoff.row_value = Rational(1, 2);
+            this->payoff.col_value = Rational(1, 2);
          }
       }
    }
