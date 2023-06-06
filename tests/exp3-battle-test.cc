@@ -11,7 +11,7 @@ Simple executable to test that surskit is being linked correctly
 
 int main()
 {
-    constexpr size_t LogSize{32};
+    constexpr size_t LogSize{64};
     const int playouts = 1000000;
     const int trials = 1;
 
@@ -31,7 +31,7 @@ int main()
         Model model(device);
         Algorithm session;
 
-        MatrixNode<Algorithm> root;
+        Algorithm::Types::MatrixNode root;
 
         session.run(playouts, device, battle, model, root);
 

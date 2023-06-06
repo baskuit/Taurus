@@ -94,17 +94,17 @@ public:
          if (r == PKMN_RESULT_WIN)
          {
             this->payoff.row_value = Rational(1);
-            this->payoff.col_value = Rational(0);
+            // this->payoff.col_value = Rational(0);
          }
          else if (r == PKMN_RESULT_LOSE)
          {
             this->payoff.row_value = Rational(0);
-            this->payoff.col_value = Rational(1);
+            // this->payoff.col_value = Rational(1);
          }
          else
          {
             this->payoff.row_value = Rational(1, 2);
-            this->payoff.col_value = Rational(1, 2);
+            // this->payoff.col_value = Rational(1, 2);
          }
       }
    }
