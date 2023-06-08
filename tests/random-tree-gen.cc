@@ -4,43 +4,36 @@ int main()
 {
 
 
-    // struct Empty {};
-
-    std::vector<size_t> db{1};
-    std::vector<size_t> a{2, 3, 4};
-    std::vector<size_t> c{1};
-    std::vector<double> t{0.0};
-    std::vector<size_t> trials;
-    trials.resize(100);
-
     prng device(285608215);
-    std::cout << device.get_seed() << std::endl;
+    std::vector<size_t> depth_bounds{1, 2};
+    std::vector<size_t> actions{2, 3, 4};
+    std::vector<size_t> chance_actions{1};
+    std::vector<double> transition_thresholds{0.0};
+    size_t states_per{20};
 
-    RandomTreeGenerator x{device, db, a, c, t, trials};
+    RandomTreeGenerator generator{device, depth_bounds, actions, chance_actions, transition_thresholds, states_per};
 
-    MonteCarloModel<RandomTree> model(device);
+    double expl_threshold{.2};
 
-    using Algorithm = Exp3<MonteCarloModel<RandomTree>>;
-    const size_t iterations = 10000;
-    const double expl_threshold = .2;
+    using Model = MonteCarloModel<RandomTree>;
+    Model model(device);
 
+    const size_t iterations = 1000000;
 
-    for (auto state : x)
+    for (RandomTree&& state : generator)
     {
+        Search<RandomTree, MonteCarloModel, Exp3, TreeBandit> search(state, model);
+        search.run(iterations);
+        // auto expl = search.get_expl();
+        // std::cout << "expl: " << expl << std::endl;
+    
 
-        // std::cout << "game seed: " << state.device.get_seed() << std::endl;
-        MatrixNode<Algorithm> root{};
-        Algorithm session{};
-        session.run(iterations, device, state, model, root);
+        std::vector<double> row_strategy, col_strategy;
 
-        typename Algorithm::Types::VectorReal row_strategy{root.row_actions.size()}, col_strategy{root.col_actions.size()};
-        session.get_empirical_strategies(&root, row_strategy, col_strategy);
+        TraversedState<Model> traversed_state(state, model);
+        typename Model::Types::MatrixValue &matrix{traversed_state.current_node->stats.nash_payoff_matrix};
 
-        TraversedState<typename Algorithm::Types::Model> traversed_state(state, model);
-        typename Algorithm::Types::MatrixValue &matrix{traversed_state.current_node->stats.nash_payoff_matrix};
-        // std::cout << "matrix:\n" << matrix << std::endl;
-        // math::print(matrix);
-        auto expl = exploitability<typename Algorithm::Types>(matrix, row_strategy, col_strategy);
+        auto expl = exploitability<typename Model::Types>(matrix, Vector(row_strategy), Vector(col_strategy));
         std::cout << "expl: " << expl << std::endl;
         if (expl > expl_threshold)
         {
