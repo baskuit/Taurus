@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cstring>
+#include <stdint.h>
 
 template <typename T = long unsigned int>
 struct PrimeField
