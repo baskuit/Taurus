@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(Taurus)
-set (CMAKE_CXX_STANDARD 20)
+set (CMAKE_CXX_STANDARD 23)
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
 
 include_directories(
     src
@@ -18,9 +19,8 @@ file(GLOB TEST_FILES tests/*.cc)
 foreach(TEST_FILE ${TEST_FILES})
     get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
     add_executable(${TEST_NAME} ${TEST_FILE})
-    target_link_libraries(${TEST_NAME} engine-wrapper)
-    target_link_libraries(${TEST_NAME} surskit)
-    target_link_libraries(${TEST_NAME} gambit)
-
+    target_link_libraries(${TEST_NAME} PRIVATE engine-wrapper)
+    target_link_libraries(${TEST_NAME} PRIVATE surskit)
+    target_link_libraries(${TEST_NAME} PRIVATE gambit)
 endforeach()
 enable_testing()
