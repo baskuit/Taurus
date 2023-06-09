@@ -18,22 +18,17 @@ int main()
     using Model = MonteCarloModel<RandomTree>;
     Model model(device);
 
-    const size_t iterations = 1000000;
+    const size_t iterations = 100000;
 
     for (RandomTree&& state : generator)
-    {
-        Search<RandomTree, MonteCarloModel, Exp3, TreeBandit> search(state, model);
-        search.run(iterations);
-        // auto expl = search.get_expl();
-        // std::cout << "expl: " << expl << std::endl;
-    
-
-        std::vector<double> row_strategy, col_strategy;
-
+    {   
         TraversedState<Model> traversed_state(state, model);
-        typename Model::Types::MatrixValue &matrix{traversed_state.current_node->stats.nash_payoff_matrix};
 
-        auto expl = exploitability<typename Model::Types>(matrix, Vector(row_strategy), Vector(col_strategy));
+        Search<RandomTree, MonteCarloModel, Exp3, TreeBandit> search(state, model, traversed_state);
+        search.run(iterations);
+        double expl = search.get_exploitability();
+
+        std::cout << "depth: " << state.depth_bound << " actions: " << state.rows << std::endl; 
         std::cout << "expl: " << expl << std::endl;
         if (expl > expl_threshold)
         {
