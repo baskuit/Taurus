@@ -4,10 +4,10 @@
 #include "engine-wrapper.hpp"
 
 template <size_t MaxLog>
-class Battle : public State<BattleTypes<MaxLog>>
+class Battle : public PerfectInfoState<BattleTypes<MaxLog>>
 {
 public:
-   struct Types : State<BattleTypes<MaxLog>>::Types
+   struct Types : PerfectInfoState<BattleTypes<MaxLog>>::Types
    {
    };
 

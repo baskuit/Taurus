@@ -9,7 +9,7 @@ int main()
     std::vector<size_t> actions{2, 3, 4};
     std::vector<size_t> chance_actions{1};
     std::vector<double> transition_thresholds{0.0};
-    size_t states_per{20};
+    size_t states_per{10};
 
     RandomTreeGenerator generator{device, depth_bounds, actions, chance_actions, transition_thresholds, states_per};
 
@@ -18,7 +18,7 @@ int main()
     using Model = MonteCarloModel<RandomTree>;
     Model model(device);
 
-    const size_t iterations = 100000;
+    const size_t iterations = 1000000;
 
     for (RandomTree&& state : generator)
     {   
