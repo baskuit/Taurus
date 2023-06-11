@@ -4,10 +4,10 @@
 #include "engine-wrapper.hpp"
 
 template <size_t MaxLog>
-class Battle : public State<BattleTypes<MaxLog>>
+class Battle : public PerfectInfoState<BattleTypes<MaxLog>>
 {
 public:
-   struct Types : State<BattleTypes<MaxLog>>::Types
+   struct Types : PerfectInfoState<BattleTypes<MaxLog>>::Types
    {
    };
 
@@ -60,8 +60,8 @@ public:
 
    void get_actions()
    { // TODO must be much slower?
-      const size_t rows = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P1, pkmn_result_p1(result), this->row_actions.data(), PKMN_CHOICES_SIZE);
-      const size_t cols = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P2, pkmn_result_p2(result), this->col_actions.data(), PKMN_CHOICES_SIZE);
+      const size_t rows = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P1, pkmn_result_p1(result), this->row_actions.template data<pkmn_choice, A<9>::Array>(), PKMN_CHOICES_SIZE);
+      const size_t cols = pkmn_gen1_battle_choices(&battle_, PKMN_PLAYER_P2, pkmn_result_p2(result), this->col_actions.template data<pkmn_choice, A<9>::Array>(), PKMN_CHOICES_SIZE);
       this->row_actions.fill(rows);
       this->col_actions.fill(cols);
 
@@ -78,7 +78,7 @@ public:
        typename Types::Action row_action,
        typename Types::Action col_action)
    {
-      result = pkmn_gen1_battle_update(&battle_, row_action, col_action, this->obs.data(), MaxLog);
+      result = pkmn_gen1_battle_update(&battle_, row_action, col_action, this->obs.template data<uint8_t, MaxLog>(), MaxLog);
       // this->prob = true;
 
       const pkmn_result_kind r = pkmn_result_type(result);
