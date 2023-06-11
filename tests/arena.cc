@@ -1,6 +1,3 @@
-#pragma once
-
-// #include <algorithm/search.hh>
 #include <surskit.hh>
 
 #include <unordered_map>
@@ -23,10 +20,10 @@ public:
         this->row_actions.fill(size);
         this->col_actions.fill(size);
 
-        for (size_t i = 0; i < size; ++i)
+        for (int i = 0; i < size; ++i)
         {
-            this->row_actions[i] = i;
-            this->col_actions[i] = i;
+            this->row_actions[i] = typename Types::Action{i};
+            this->col_actions[i] = typename Types::Action{i};
         }
     }
 
@@ -42,6 +39,12 @@ public:
 
         State sub_state = row_search->get_new_state();
 
+        play_vs(
+            row_search,
+            col_search,
+            sub_state
+        );
+
         // simulate game
     }
 
@@ -50,24 +53,28 @@ public:
         S *col_search, 
         State &initial_state)
     {
+        
     }
 };
 
 int main()
 {
 
-    using State = MoldState<2>;
+    using State = RandomTree;
     using Model = MonteCarloModel<State>;
 
     State state{10};
     Model model{0};
 
     Search<State, MonteCarloModel, Exp3, TreeBandit> s0{state, model};
-    std::vector<S *> agents{&s0};
     // TODO:
     /*
     if yuo have a TraversedState<> ptr member then your State must pass static_assertion about being ChanceState
     */
+
+   Arena<State, Model> arena{std::vector<S*>{&s0}};
+
+   arena.apply_actions(SimpleTypes::Action{0}, SimpleTypes::Action{0});
 
     return 0;
 }
