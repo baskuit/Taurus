@@ -5,10 +5,10 @@
 #include <utility>
 
 template <class _State, class _Model>
-class Arena : PerfectInfoState<SimpleTypes>
+class Arena : public PerfectInfoState<SimpleTypes>
 {
 public:
-    struct Types : SimpleTypes
+    struct Types : PerfectInfoState<SimpleTypes>::Types
     {
     };
 
@@ -39,6 +39,10 @@ public:
 
     void get_actions() {}
 
+    void reseed(typename Types::Seed)
+    {
+    }
+
     void apply_actions(
         typename Types::Action row_action,
         typename Types::Action col_action)
@@ -62,13 +66,12 @@ public:
     {
         state.get_actions();
         while (!state.is_terminal()) {
-            std::cout << '!' << std::endl;
-
             row_search->run(1000, state, model);
             col_search->run(1000, state, model);
-            auto row_strategy = row_search->row_strategy();
-            auto col_strategy = row_search->col_strategy();
+            std::vector<double> row_strategy, col_strategy;
+            row_search->get_empirical_strategies(row_strategy, col_strategy);
             ActionIndex row_idx = device.sample_pdf(row_strategy);
+            col_search->get_empirical_strategies(row_strategy, col_strategy);
             ActionIndex col_idx = device.sample_pdf(col_strategy);
             state.apply_actions(row_idx, col_idx);
             state.get_actions();
@@ -77,41 +80,38 @@ public:
     }
 };
 
-using State = RandomTree;
-using Model = MonteCarloModel<RandomTree>;
-using Algorithm = Exp3<Model, TreeBandit>;
 
-std::vector<W::SearchWrapper<Algorithm>> agents = {
-    {.001}, {.005}, {.01}, {.05}, {.1}, {.2}, {.5}
-};
 
 int main()
 {
+
+    using State = Arena<RandomTree, MonteCarloModel<RandomTree>>;
+    using Model = MonteCarloModel<State>;
+    using Algorithm = Exp3<Model, TreeBandit>;
+    std::vector<W::SearchWrapper<Exp3<MonteCarloModel<RandomTree>, TreeBandit>>> agents = {
+        {.001}, {.005}, {.01}, {.05}, {.1}, {.2}, {.5}
+    };
+
     prng device{0};
     W::ModelWrapper<MonteCarloModel<RandomTree>> model{device};
 
     // RandomTreeGenerator generator{0, {1, 2}, {2, 3, 4}, {1}, {0.0}, 10};
-    RandomTreeGenerator generator{0, {2}, {2}, {1}, {0.0}, 1};
+    RandomTreeGenerator generator{0, {20}, {4}, {1}, {0.0}, 1};
 
     for (RandomTree&& random_tree : generator) {
         
-        Arena<RandomTree, MonteCarloModel<RandomTree>> arena{random_tree, model, agents};
-        arena.apply_actions(RandomTree::Types::Action{0}, RandomTree::Types::Action{1});
+        State arena{random_tree, model, agents};
 
+        Model arena_model{1337};
+        Algorithm session{};
+        MatrixNode<Algorithm> root;
+
+        session.run(1000, device, arena, arena_model, root);
+        State::Types::VectorReal row_strategy, col_strategy;
+        session.get_empirical_strategies(&root, row_strategy, col_strategy);
+        math::print(row_strategy);
+        math::print(col_strategy);
     }
-
-    //     State state{10};
-    //     Model model{0};
-
-    //     Search<State, MonteCarloModel, Exp3, TreeBandit> s0{state, model};
-    //     // TODO:
-    //     /*
-    //     if yuo have a TraversedState<> ptr member then your State must pass static_assertion about being ChanceState
-    //     */
-
-    //    Arena<State, Model> arena{std::vector<S*>{&s0}};
-
-    //    arena.apply_actions(SimpleTypes::Action{0}, SimpleTypes::Action{0});
 
     return 0;
 }
