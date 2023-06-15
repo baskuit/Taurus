@@ -78,7 +78,12 @@ public:
        typename Types::Action row_action,
        typename Types::Action col_action)
    {
-      result = pkmn_gen1_battle_update(&battle_, row_action, col_action, this->obs.template data<uint8_t, MaxLog>(), MaxLog);
+      result = pkmn_gen1_battle_update(
+         &battle_, 
+         static_cast<pkmn_choice>(row_action), 
+         static_cast<pkmn_choice>(col_action), 
+         this->obs.template data<uint8_t, MaxLog>(), 
+         MaxLog);
       // this->prob = true;
 
       const pkmn_result_kind r = pkmn_result_type(result);
