@@ -52,11 +52,12 @@ public:
       // this->obs = t.obs; // TODO do we need to copy obs?
    }
 
-   void reseed (typename Types::Seed seed) {
+    void reseed(typename Types::PRNG &device)
+    {
       // this->seed = seed; // NOT NEEded TODO prolly
-      engine::RBY::set_seed(battle_, seed);
+      engine::RBY::set_seed(battle_, device.uniform_64());
       // pkmn_psrng_init(&random, seed);
-   }
+    }
 
    void get_actions()
    { // TODO must be much slower?

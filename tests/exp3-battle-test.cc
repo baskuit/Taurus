@@ -19,7 +19,8 @@ int main()
     {
         using Battle = Battle<LogSize>;
         using Model = EmptyModel<Battle>;
-        using Algorithm = Exp3<Model, TreeBandit>;
+        using Algorithm = TreeBandit<Exp3<Model>, MatrixNode, ChanceNode>;
+
 
         prng device(0);
         Battle battle(engine::RBY::miedon, engine::RBY::miedon);
