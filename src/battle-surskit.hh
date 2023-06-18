@@ -49,14 +49,11 @@ public:
    {
       this->row_actions = t.row_actions;
       this->col_actions = t.col_actions;
-      // this->obs = t.obs; // TODO do we need to copy obs?
    }
 
     void reseed(typename Types::PRNG &device)
     {
-      // this->seed = seed; // NOT NEEded TODO prolly
       engine::RBY::set_seed(battle_, device.uniform_64());
-      // pkmn_psrng_init(&random, seed);
     }
 
    void get_actions()
@@ -99,18 +96,15 @@ public:
          this->is_terminal = true;
          if (r == PKMN_RESULT_WIN)
          {
-            this->payoff.row_value = Rational(1);
-            // this->payoff.col_value = Rational(0);
+            this->payoff = typename Types::Value{1};
          }
          else if (r == PKMN_RESULT_LOSE)
          {
-            this->payoff.row_value = Rational(0);
-            // this->payoff.col_value = Rational(1);
+            this->payoff = typename Types::Value{0};
          }
          else
          {
-            this->payoff.row_value = Rational(1, 2);
-            // this->payoff.col_value = Rational(1, 2);
+            this->payoff = typename Types::Value{.5}; //TODO!!!!
          }
       }
    }
