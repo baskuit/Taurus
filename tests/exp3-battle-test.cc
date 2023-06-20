@@ -29,7 +29,7 @@ int main()
         battle.get_actions();
         std::cout << battle.row_actions.size() << ' '<< battle.col_actions.size() << std::endl;
 
-        Model model(device);
+        Model model{};
         Algorithm session;
 
         Algorithm::Types::MatrixNode root;
