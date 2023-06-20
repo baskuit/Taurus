@@ -40,8 +40,9 @@ public:
 
     void get_actions() {}
 
-   void reseed (typename Types::PRNG &device) {
-   }
+    void reseed(typename Types::PRNG &device)
+    {
+    }
 
     void apply_actions(
         typename Types::Action row_action,
