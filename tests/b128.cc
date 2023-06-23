@@ -29,7 +29,7 @@ void test(prng &device, const size_t num_matrices, const size_t n_discrete)
             {
                 auto payoff_matrix = random_matrix(device, rows, cols);
                 std::vector<double> row_strategy{}, col_strategy{};
-                LRSNash::eee(payoff_matrix, row_strategy, col_strategy, n_discrete);
+                LRSNash::solve_matrix(payoff_matrix, row_strategy, col_strategy, n_discrete);
             }
         }
     }

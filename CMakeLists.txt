@@ -20,8 +20,6 @@ foreach(TEST_FILE ${TEST_FILES})
     add_executable(${TEST_NAME} ${TEST_FILE})
     target_link_libraries(${TEST_NAME} engine-wrapper)
     target_link_libraries(${TEST_NAME} surskit)
-    target_link_libraries(${TEST_NAME} gambit)
-    target_link_libraries(${TEST_NAME} lrsnashlib)
 
 endforeach()
 enable_testing()

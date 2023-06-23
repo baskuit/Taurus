@@ -29,7 +29,7 @@ int main()
         std::vector<double> row_strategy{}, col_strategy{};
         auto start = std::chrono::high_resolution_clock::now();
 
-        LRSNash::eee(payoff_matrix, row_strategy, col_strategy);
+        LRSNash::solve_matrix(payoff_matrix, row_strategy, col_strategy);
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
