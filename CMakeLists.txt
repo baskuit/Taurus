@@ -21,6 +21,7 @@ foreach(TEST_FILE ${TEST_FILES})
     target_link_libraries(${TEST_NAME} engine-wrapper)
     target_link_libraries(${TEST_NAME} surskit)
     target_link_libraries(${TEST_NAME} gambit)
+    target_link_libraries(${TEST_NAME} lrsnashlib)
 
 endforeach()
 enable_testing()
